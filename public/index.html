@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Direct Link — P2P File Transfer & Community Wall</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-1" aria-hidden="true"></div>
+  <div class="ambient-glow glow-2" aria-hidden="true"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <div class="app-container">
+
+    <!-- Global Header -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-logo" id="logoClickable">
+          <div class="logo-core">◈</div>
+          <div class="logo-ring"></div>
+        </div>
+        <div class="brand-info">
+          <div class="brand-title-row">
+            <h1 class="brand-title">Direct Link</h1>
+            <span class="brand-badge">P2P + Community</span>
+          </div>
+          <p class="brand-subtitle">Zero-cloud direct browser transfers & public community clipboard</p>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="live-pill" id="livePill" title="Real-time network connection">
+          <span class="live-dot"></span>
+          <span id="onlineCountText">Connecting…</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" role="tablist" aria-label="Main Navigation">
+      <button type="button" class="tab-btn active" id="tabTransferBtn" role="tab" aria-selected="true" aria-controls="transferTabPane">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        <span>P2P Transfer</span>
+      </button>
+
+      <button type="button" class="tab-btn" id="tabCommunityBtn" role="tab" aria-selected="false" aria-controls="communityTabPane">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span>Community Wall</span>
+        <span class="tab-counter" id="communityCountBadge">0</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: P2P TRANSFER VIEW -->
+    <section id="transferTabPane" class="tab-pane active" role="tabpanel" aria-labelledby="tabTransferBtn">
+      
+      <!-- Transfer View Mode Switcher (Desktop & Mobile) -->
+      <div class="transfer-mode-switcher">
+        <button type="button" class="mode-btn active" id="modeBothBtn">
+          <span>All Panels</span>
+        </button>
+        <button type="button" class="mode-btn" id="modeSendBtn">
+          <span>📤 Send Mode</span>
+        </button>
+        <button type="button" class="mode-btn" id="modeRecvBtn">
+          <span>📥 Receive Mode</span>
+        </button>
+      </div>
+
+      <!-- Interactive Signal Rail Visualization -->
+      <div class="signal-rail" id="signalRail" aria-hidden="true">
+        <div class="rail-node node-send" id="nodeSend">
+          <span class="node-icon">▲</span>
+          <span class="node-text">SENDER</span>
+        </div>
+        <div class="rail-wire">
+          <div class="rail-track"></div>
+          <div class="pulse-spark" id="pulse"></div>
+        </div>
+        <div class="rail-node node-recv" id="nodeRecv">
+          <span class="node-icon">▼</span>
+          <span class="node-text">RECEIVER</span>
+        </div>
+      </div>
+
+      <div class="transfer-grid" id="transferGrid">
+
+        <!-- SEND PANEL -->
+        <div class="card panel-card send-card" id="sendCard">
+          <div class="card-header">
+            <div class="step-indicator">
+              <span class="step-num">01</span>
+              <div>
+                <h2>Send Files</h2>
+                <p class="card-desc">Direct browser-to-browser encrypted transfer</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drop Area (Drop & Browse ONLY - No nested file list) -->
+          <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Drop files or click to browse">
+            <input type="file" id="fileInput" multiple hidden>
+            <div class="drop-prompt">
+              <div class="drop-icon-wrap">
+                <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="drop-primary">Choose files or drop here</p>
+              <p class="drop-secondary">Select any files from this device</p>
+            </div>
+          </div>
+
+          <!-- Selected Files List (Cleanly separated from drop zone) -->
+          <div class="selected-files-card" id="selectedFilesCard" hidden>
+            <div class="selected-header">
+              <span class="selected-title" id="selectedCountText">0 files staged</span>
+              <button type="button" id="clearFilesBtn" class="link-action-subtle">Clear all</button>
+            </div>
+            <ul class="file-list" id="fileList"></ul>
+          </div>
+
+          <!-- Send Action Button -->
+          <div class="send-action-row">
+            <button type="button" id="createBtn" class="btn btn-primary" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>Generate Call Sign</span>
+            </button>
+          </div>
+
+          <!-- Call Sign Code Card (revealed when generated) -->
+          <div class="callsign-box" id="callsignPlate" hidden>
+            <div class="callsign-header">
+              <span class="callsign-label">YOUR CALL SIGN</span>
+              <span class="callsign-tag" id="sendStateTag">Waiting for peer…</span>
+            </div>
+            
+            <div class="callsign-display-box">
+              <div class="code-display" id="plateCode">-----</div>
+            </div>
+
+            <!-- Action buttons below code -->
+            <div class="callsign-action-bar">
+              <button type="button" id="copyBtn" class="btn-icon-labeled" title="Copy Call Sign">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="copyBtnText">Copy Code</span>
+              </button>
+
+              <button type="button" id="copyLinkBtn" class="btn-icon-labeled" title="Copy direct link for peer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <span id="copyLinkBtnText">Copy Link</span>
+              </button>
+
+              <button type="button" id="qrToggleBtn" class="btn-icon-labeled" title="Show QR Code for mobile">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>QR Code</span>
+              </button>
+
+              <button type="button" id="cancelSendBtn" class="btn-icon-labeled btn-cancel" title="Cancel this transfer and start over">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Reset</span>
+              </button>
+            </div>
+
+            <!-- Mobile QR Canvas Box -->
+            <div class="qr-canvas-container" id="qrContainer" hidden>
+              <p class="qr-instruction">Scan with phone camera to connect directly:</p>
+              <div class="qr-box">
+                <img id="qrImage" width="180" height="180" alt="Direct Link QR Code">
+              </div>
+            </div>
+          </div>
+
+          <!-- Status & Progress -->
+          <div class="status-wrap" id="sendStatusWrap">
+            <div class="status-header-row">
+              <p class="status-msg" id="sendStatus" role="status"></p>
+              <span class="status-pct" id="sendPctText" hidden>0%</span>
+            </div>
+            <div class="progress-track" id="sendProgress" hidden>
+              <div class="progress-fill send-fill" id="sendProgressBar"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECEIVE PANEL -->
+        <div class="card panel-card recv-card" id="recvCard">
+          <div class="card-header">
+            <div class="step-indicator">
+              <span class="step-num step-teal">02</span>
+              <div>
+                <h2>Receive Files</h2>
+                <p class="card-desc">Enter the call sign to start downloading</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-form">
+            <label class="input-label" for="codeInput">Enter Call Sign</label>
+            <div class="code-input-group">
+              <div class="input-code-wrapper">
+                <input type="text" id="codeInput" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE">
+                <button type="button" id="pasteCodeBtn" class="paste-code-btn" title="Paste from clipboard">Paste</button>
+              </div>
+              <button type="button" id="joinBtn" class="btn btn-teal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+                <span id="joinBtnText">Connect</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Receiver Action / Cancel Row -->
+          <div class="recv-action-row" id="recvActionRow" hidden>
+            <button type="button" id="cancelRecvBtn" class="btn-subtle-cancel">
+              <span>✕ Cancel Connection</span>
+            </button>
+          </div>
+
+          <!-- Receiver Status & Progress -->
+          <div class="status-wrap" id="recvStatusWrap">
+            <div class="status-header-row">
+              <p class="status-msg" id="recvStatus" role="status"></p>
+              <span class="status-pct" id="recvPctText" hidden>0%</span>
+            </div>
+            <div class="progress-track" id="recvProgress" hidden>
+              <div class="progress-fill recv-fill" id="recvProgressBar"></div>
+            </div>
+          </div>
+
+          <!-- Received Files Output List -->
+          <div class="received-box" id="recvBox">
+            <h3 class="received-title">Received Files</h3>
+            <ul class="file-list" id="recvFileList">
+              <li class="empty-list-notice">Files sent from peer will download automatically here</li>
+            </ul>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Info Banner -->
+      <footer class="tech-notes">
+        <div class="note-pill">
+          <span class="note-icon">🔒</span>
+          <span>End-to-End Direct Connection: Files stream browser-to-browser via WebRTC without touching the server.</span>
+        </div>
+      </footer>
+
+    </section>
+
+
+    <!-- TAB 2: COMMUNITY WALL VIEW -->
+    <section id="communityTabPane" class="tab-pane" role="tabpanel" aria-labelledby="tabCommunityBtn">
+      
+      <!-- Community Composer Card -->
+      <div class="card community-composer">
+        <div class="composer-header">
+          <div class="composer-title-group">
+            <div class="community-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <h2>Share with Community</h2>
+              <p class="card-desc">Publish code, commands, notes, or messages for anyone to view & copy instantly</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="communityForm" class="composer-form">
+          <div class="form-row-author-tag">
+            <div class="form-field author-field">
+              <label for="authorInput">Your Name / Handle</label>
+              <div class="input-with-icon">
+                <span class="field-icon">@</span>
+                <input type="text" id="authorInput" placeholder="e.g. John Doe or dev_ninja" maxlength="40" required>
+              </div>
+            </div>
+
+            <div class="form-field tag-field">
+              <label for="tagSelect">Category</label>
+              <div class="tag-selector" id="tagSelector">
+                <button type="button" class="tag-pill active" data-tag="Note">📝 Note</button>
+                <button type="button" class="tag-pill" data-tag="Code">💻 Code</button>
+                <button type="button" class="tag-pill" data-tag="Link">🔗 Link</button>
+                <button type="button" class="tag-pill" data-tag="Message">💬 Message</button>
+              </div>
+              <input type="hidden" id="selectedTag" value="Note">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <div class="textarea-header">
+              <label for="snippetTextInput">Text / Code Snippet</label>
+              <span class="char-count" id="charCount">0 / 20,000</span>
+            </div>
+            <textarea id="snippetTextInput" rows="4" placeholder="Type or paste anything here... (e.g. commands, shared notes, code snippets, cheat sheets, announcements)" required></textarea>
+          </div>
+
+          <div class="composer-actions">
+            <div class="composer-hint">
+              <span>⚡ Live Sync: Everyone online sees your post immediately</span>
+            </div>
+            <button type="submit" id="submitSnippetBtn" class="btn btn-accent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+              <span>Publish Snippet</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Community Feed Controls (Search & Filter) -->
+      <div class="community-controls">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="search" id="communitySearchInput" placeholder="Filter by text, author, or keyword…">
+          <button type="button" id="clearSearchBtn" class="clear-btn" hidden>✕</button>
+        </div>
+
+        <div class="filter-chips">
+          <button type="button" class="chip active" data-filter="all">All</button>
+          <button type="button" class="chip" data-filter="Note">Notes</button>
+          <button type="button" class="chip" data-filter="Code">Code</button>
+          <button type="button" class="chip" data-filter="Link">Links</button>
+          <button type="button" class="chip" data-filter="Message">Messages</button>
+        </div>
+      </div>
+
+      <!-- Community Snippets List -->
+      <div class="community-feed-container">
+        <div class="feed-header-info">
+          <h3 id="feedCountTitle">Community Feed</h3>
+          <button type="button" id="refreshFeedBtn" class="btn-refresh" title="Reload feed">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        <div id="communityPostsList" class="posts-list">
+          <div class="feed-loader">
+            <div class="spinner"></div>
+            <p>Loading community snippets…</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "post_1788591148313_7k9yb",
+    "author": "Akshraj",
+    "text": "Hello",
+    "tag": "Note",
+    "createdAt": 1788591148313
+  },
+  {
+    "id": "post_1788590625658_hvlsp",
+    "author": "Test User",
+    "text": "Hello from verification test!",
+    "tag": "Note",
+    "createdAt": 1788590625658
+  },
+  {
+    "id": "seed-1",
+    "author": "Alex (Creator)",
+    "text": "Welcome to the P2P Community Board! Share code snippets, notes, terminal commands, or links here. Anyone can view and copy with 1 click.",
+    "tag": "Note",
+    "createdAt": 1788587917068
+  },
+  {
+    "id": "seed-2",
+    "author": "DevTip",
+    "text": "git config --global alias.undo \"reset --soft HEAD~1\"\n// Quick command to undo your last local commit while keeping changes staged!",
+    "tag": "Code",
+    "createdAt": 1788589417068
+  },
+  {
+    "id": "seed-3",
+    "author": "Community Hub",
+    "text": "Need to transfer heavy files directly peer-to-peer? Use the Transfer tab above. No file size limits and zero server storage!",
+    "tag": "Message",
+    "createdAt": 1788590317068
+  }
+]
