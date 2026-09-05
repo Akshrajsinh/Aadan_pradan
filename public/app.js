@@ -557,16 +557,31 @@
 
 
   // ============================================================
-  // P2P FILE TRANSFER LOGIC (WEBRTC)
+  // P2P FILE TRANSFER LOGIC (ROBUST WEBRTC)
   // ============================================================
   let selectedFiles = [];
   let sendSocket = null;
   let sendPC = null;
   let sendChannel = null;
+  let sendIceQueue = [];
   let transferDoneSend = false;
 
+  // Render Staged Files List (Separated from dropZone)
   function renderFileList() {
+    if (!fileListEl || !selectedFilesCard || !createBtn) return;
     fileListEl.innerHTML = '';
+    const totalBytes = selectedFiles.reduce((sum, f) => sum + f.size, 0);
+
+    if (selectedFiles.length === 0) {
+      selectedFilesCard.hidden = true;
+      createBtn.disabled = true;
+      return;
+    }
+
+    selectedFilesCard.hidden = false;
+    selectedCountText.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} staged (${fmtBytes(totalBytes)})`;
+    createBtn.disabled = false;
+
     selectedFiles.forEach((f, idx) => {
       const li = document.createElement('li');
       li.className = 'file-item';
@@ -580,15 +595,12 @@
         </div>
         <div class="file-meta">
           <span class="file-size">${fmtBytes(f.size)}</span>
-          <button type="button" class="file-remove-btn" data-index="${idx}" title="Remove file">✕</button>
+          <button type="button" class="file-remove-btn" data-index="${idx}" title="Remove this file">✕</button>
         </div>
       `;
       fileListEl.appendChild(li);
     });
 
-    createBtn.disabled = selectedFiles.length === 0;
-
-    // Attach remove handlers
     fileListEl.querySelectorAll('.file-remove-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -599,148 +611,192 @@
     });
   }
 
-  browseBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    fileInput.click();
-  });
-
-  dropZone.addEventListener('click', () => {
-    fileInput.click();
-  });
-
-  fileInput.addEventListener('change', () => {
-    selectedFiles = Array.from(fileInput.files);
-    renderFileList();
-  });
-
-  ['dragover', 'dragenter'].forEach((evt) =>
-    dropZone.addEventListener(evt, (e) => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
-    })
-  );
-
-  ['dragleave', 'drop'].forEach((evt) =>
-    dropZone.addEventListener(evt, (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-    })
-  );
-
-  dropZone.addEventListener('drop', (e) => {
-    const dropped = Array.from(e.dataTransfer.files || []);
-    if (dropped.length) {
-      selectedFiles = dropped;
+  if (clearFilesBtn) {
+    clearFilesBtn.addEventListener('click', () => {
+      selectedFiles = [];
+      fileInput.value = '';
       renderFileList();
-    }
-  });
-
-  // Call Sign Generation
-  createBtn.addEventListener('click', () => {
-    if (!selectedFiles.length) return;
-    createBtn.disabled = true;
-    setStatus(sendStatus, 'Requesting a call sign from signaling server…');
-    sendSocket = new WebSocket(wsUrl());
-
-    sendSocket.addEventListener('open', () => {
-      sendSocket.send(JSON.stringify({ type: 'create' }));
+      showToast('Staged files cleared');
     });
-
-    sendSocket.addEventListener('message', (evt) => handleSendSignal(JSON.parse(evt.data)));
-
-    sendSocket.addEventListener('close', () => {
-      if (!transferDoneSend) {
-        setStatus(sendStatus, 'Signaling connection closed.', 'err');
-        setRailActive(false, false);
-      }
-    });
-  });
-
-  // Copy Call Sign
-  copyBtn.addEventListener('click', async () => {
-    const code = plateCode.textContent;
-    const success = await copyToClipboard(code);
-    if (success) {
-      copyBtn.classList.add('copied');
-      copyBtnText.textContent = 'Copied!';
-      showToast(`Call sign ${code} copied!`);
-      setTimeout(() => {
-        copyBtn.classList.remove('copied');
-        copyBtnText.textContent = 'Copy';
-      }, 2000);
-    }
-  });
-
-  // QR Code Generation
-  function drawMiniQR(canvas, text) {
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const size = canvas.width;
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, size, size);
-
-    // Render high-contrast 2D pattern representing the code
-    const grid = 21;
-    const cell = Math.floor(size / grid);
-    const offset = Math.floor((size - cell * grid) / 2);
-
-    ctx.fillStyle = '#000000';
-
-    // Position detection squares (corners)
-    function drawCorner(r, c) {
-      for (let i = 0; i < 7; i++) {
-        for (let j = 0; j < 7; j++) {
-          if (i === 0 || i === 6 || j === 0 || j === 6 || (i >= 2 && i <= 4 && j >= 2 && j <= 4)) {
-            ctx.fillRect(offset + (c + j) * cell, offset + (r + i) * cell, cell, cell);
-          }
-        }
-      }
-    }
-
-    drawCorner(0, 0);
-    drawCorner(0, 14);
-    drawCorner(14, 0);
-
-    // Hash data pattern based on text
-    let hash = 0;
-    for (let k = 0; k < text.length; k++) {
-      hash = (hash << 5) - hash + text.charCodeAt(k);
-      hash |= 0;
-    }
-
-    for (let r = 0; r < grid; r++) {
-      for (let c = 0; c < grid; c++) {
-        // Skip corner detection patterns
-        if ((r < 8 && c < 8) || (r < 8 && c > 12) || (r > 12 && c < 8)) continue;
-        const val = Math.abs(Math.sin((r * grid + c + hash) * 1.5));
-        if (val > 0.48) {
-          ctx.fillRect(offset + c * cell, offset + r * cell, cell, cell);
-        }
-      }
-    }
   }
 
-  qrToggleBtn.addEventListener('click', () => {
-    const isHidden = qrContainer.hidden;
-    qrContainer.hidden = !isHidden;
-    if (!qrContainer.hidden) {
-      const code = plateCode.textContent;
-      const shareUrl = `${location.origin}/#join=${code}`;
-      drawMiniQR(qrCanvas, shareUrl);
+  // Dropzone click & drag handlers
+  if (dropZone) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    ['dragover', 'dragenter'].forEach((evt) =>
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      })
+    );
+
+    ['dragleave', 'drop'].forEach((evt) =>
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+      })
+    );
+
+    dropZone.addEventListener('drop', (e) => {
+      const dropped = Array.from(e.dataTransfer.files || []);
+      if (dropped.length) {
+        selectedFiles = selectedFiles.concat(dropped);
+        renderFileList();
+      }
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        const newFiles = Array.from(fileInput.files);
+        selectedFiles = selectedFiles.concat(newFiles);
+        renderFileList();
+      }
+    });
+  }
+
+  // Reset Send State
+  function resetSendState() {
+    if (sendSocket) {
+      try { sendSocket.send(JSON.stringify({ type: 'cancel' })); } catch { /* ignore */ }
+      sendSocket.close();
+      sendSocket = null;
     }
-  });
+    if (sendPC) {
+      sendPC.close();
+      sendPC = null;
+    }
+    sendChannel = null;
+    sendIceQueue = [];
+    transferDoneSend = false;
+
+    if (callsignPlate) callsignPlate.hidden = true;
+    if (qrContainer) qrContainer.hidden = true;
+    if (plateCode) plateCode.textContent = '-----';
+    if (createBtn) createBtn.disabled = selectedFiles.length === 0;
+    if (sendProgress) sendProgress.hidden = true;
+    if (sendProgressBar) sendProgressBar.style.width = '0%';
+    if (sendPctText) sendPctText.hidden = true;
+    setStatus(sendStatus, '');
+    setRailActive(false, false);
+  }
+
+  if (cancelSendBtn) {
+    cancelSendBtn.addEventListener('click', () => {
+      resetSendState();
+      showToast('Transfer session reset');
+    });
+  }
+
+  // Call Sign Generation
+  if (createBtn) {
+    createBtn.addEventListener('click', () => {
+      if (!selectedFiles.length) return;
+      createBtn.disabled = true;
+      setStatus(sendStatus, 'Requesting call sign from signaling server…');
+      if (sendProgress) sendProgress.hidden = true;
+      if (sendProgressBar) sendProgressBar.style.width = '0%';
+      if (sendPctText) sendPctText.hidden = true;
+
+      sendSocket = new WebSocket(wsUrl());
+
+      sendSocket.addEventListener('open', () => {
+        sendSocket.send(JSON.stringify({ type: 'create' }));
+      });
+
+      sendSocket.addEventListener('message', (evt) => {
+        try {
+          handleSendSignal(JSON.parse(evt.data));
+        } catch (err) {
+          console.error('Send signal parse error:', err);
+        }
+      });
+
+      sendSocket.addEventListener('close', () => {
+        if (!transferDoneSend) {
+          setStatus(sendStatus, 'Signaling connection closed.', 'err');
+          setRailActive(false, false);
+          createBtn.disabled = false;
+        }
+      });
+    });
+  }
+
+  // Copy Call Sign
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      const code = plateCode.textContent;
+      const success = await copyToClipboard(code);
+      if (success) {
+        copyBtn.classList.add('copied');
+        if (copyBtnText) copyBtnText.textContent = 'Copied!';
+        showToast(`Call sign ${code} copied to clipboard!`);
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          if (copyBtnText) copyBtnText.textContent = 'Copy Code';
+        }, 2000);
+      }
+    });
+  }
+
+  // Copy Direct Link
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', async () => {
+      const code = plateCode.textContent;
+      const directUrl = `${location.origin}/#join=${code}`;
+      const success = await copyToClipboard(directUrl);
+      if (success) {
+        copyLinkBtn.classList.add('copied');
+        if (copyLinkBtnText) copyLinkBtnText.textContent = 'Copied Link!';
+        showToast('Direct link copied! Send this to recipient.');
+        setTimeout(() => {
+          copyLinkBtn.classList.remove('copied');
+          if (copyLinkBtnText) copyLinkBtnText.textContent = 'Copy Link';
+        }, 2000);
+      }
+    });
+  }
+
+  // Toggle QR Code
+  if (qrToggleBtn) {
+    qrToggleBtn.addEventListener('click', () => {
+      const isHidden = qrContainer.hidden;
+      qrContainer.hidden = !isHidden;
+      if (!qrContainer.hidden && qrImage) {
+        const code = plateCode.textContent;
+        const shareUrl = `${location.origin}/#join=${code}`;
+        qrImage.src = `/api/qr?text=${encodeURIComponent(shareUrl)}`;
+      }
+    });
+  }
 
   function handleSendSignal(msg) {
     switch (msg.type) {
       case 'created':
-        callsignPlate.hidden = false;
-        plateCode.textContent = msg.code;
-        setStatus(sendStatus, 'Share this call sign with the recipient. Waiting for connection…');
+        if (callsignPlate) callsignPlate.hidden = false;
+        if (plateCode) plateCode.textContent = msg.code;
+        if (sendStateTag) {
+          sendStateTag.textContent = 'Ready to pair';
+          sendStateTag.style.color = '#6EE7B7';
+        }
+        setStatus(sendStatus, 'Share this call sign or direct link with recipient…');
         setRailActive(true, false);
         break;
 
       case 'peer-joined':
-        setStatus(sendStatus, 'Peer connected! Negotiating direct WebRTC channel…');
+        if (sendStateTag) {
+          sendStateTag.textContent = 'Peer connected';
+          sendStateTag.style.color = '#22D3EE';
+        }
+        setStatus(sendStatus, 'Recipient connected! Negotiating direct WebRTC channel…');
         setRailActive(true, true);
         startSendPeerConnection();
         break;
@@ -750,6 +806,10 @@
         break;
 
       case 'peer-left':
+        if (sendStateTag) {
+          sendStateTag.textContent = 'Disconnected';
+          sendStateTag.style.color = '#FDA4AF';
+        }
         setStatus(sendStatus, 'The recipient disconnected.', 'err');
         setRailActive(false, false);
         break;
@@ -763,24 +823,26 @@
 
   async function startSendPeerConnection() {
     sendPC = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    sendIceQueue = [];
+
     sendChannel = sendPC.createDataChannel('file', { ordered: true });
     sendChannel.bufferedAmountLowThreshold = BUFFERED_AMOUNT_LOW;
 
     sendPC.addEventListener('icecandidate', (e) => {
-      if (e.candidate) {
+      if (e.candidate && sendSocket && sendSocket.readyState === WebSocket.OPEN) {
         sendSocket.send(JSON.stringify({ type: 'signal', data: { kind: 'ice', payload: e.candidate } }));
       }
     });
 
     sendPC.addEventListener('connectionstatechange', () => {
       if (['failed', 'disconnected'].includes(sendPC.connectionState)) {
-        setStatus(sendStatus, 'Direct P2P connection lost or blocked by firewall.', 'err');
+        setStatus(sendStatus, 'Direct connection lost. Network may be blocking P2P traffic.', 'err');
         setRailActive(false, false);
       }
     });
 
     sendChannel.addEventListener('open', () => {
-      setStatus(sendStatus, 'Connected! Direct peer-to-peer transfer starting…', 'ok');
+      setStatus(sendStatus, 'Direct P2P channel established! Streaming files…', 'ok');
       sendAllFiles();
     });
 
@@ -790,10 +852,20 @@
   }
 
   async function onSendRemoteSignal(data) {
+    if (!sendPC) return;
+
     if (data.kind === 'answer') {
-      await sendPC.setRemoteDescription(data.payload);
-    } else if (data.kind === 'ice') {
-      try { await sendPC.addIceCandidate(data.payload); } catch { /* ignore */ }
+      await sendPC.setRemoteDescription(new RTCSessionDescription(data.payload));
+      while (sendIceQueue.length > 0) {
+        const cand = sendIceQueue.shift();
+        try { await sendPC.addIceCandidate(new RTCIceCandidate(cand)); } catch { /* ignore */ }
+      }
+    } else if (data.kind === 'ice' && data.payload) {
+      if (!sendPC.remoteDescription) {
+        sendIceQueue.push(data.payload);
+      } else {
+        try { await sendPC.addIceCandidate(new RTCIceCandidate(data.payload)); } catch { /* ignore */ }
+      }
     }
   }
 
@@ -813,40 +885,53 @@
   async function sendAllFiles() {
     const totalBytes = selectedFiles.reduce((sum, f) => sum + f.size, 0);
     let sentBytes = 0;
-    sendProgress.hidden = false;
+    if (sendProgress) sendProgress.hidden = false;
+    if (sendPctText) sendPctText.hidden = false;
 
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i];
-      sendChannel.send(JSON.stringify({
-        type: 'meta',
-        fileIndex: i,
-        totalFiles: selectedFiles.length,
-        name: file.name,
-        size: file.size,
-        mime: file.type || 'application/octet-stream',
-      }));
+    try {
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        if (sendChannel.readyState !== 'open') throw new Error('Channel closed');
 
-      let offset = 0;
-      while (offset < file.size) {
-        await waitForBufferLow(sendChannel);
-        const slice = file.slice(offset, offset + CHUNK_SIZE);
-        const buf = await slice.arrayBuffer();
-        sendChannel.send(buf);
-        offset += buf.byteLength;
-        sentBytes += buf.byteLength;
-        const pct = Math.min(100, (sentBytes / totalBytes) * 100);
-        sendProgressBar.style.width = `${pct}%`;
-        setStatus(sendStatus, `Sending "${file.name}" (${Math.round(pct)}%)…`, 'ok');
+        sendChannel.send(JSON.stringify({
+          type: 'meta',
+          fileIndex: i,
+          totalFiles: selectedFiles.length,
+          name: file.name,
+          size: file.size,
+          mime: file.type || 'application/octet-stream',
+        }));
+
+        let offset = 0;
+        while (offset < file.size) {
+          if (sendChannel.readyState !== 'open') throw new Error('Channel closed');
+          await waitForBufferLow(sendChannel);
+          const slice = file.slice(offset, offset + CHUNK_SIZE);
+          const buf = await slice.arrayBuffer();
+          sendChannel.send(buf);
+          offset += buf.byteLength;
+          sentBytes += buf.byteLength;
+
+          const pct = Math.min(100, Math.round((sentBytes / totalBytes) * 100));
+          if (sendProgressBar) sendProgressBar.style.width = `${pct}%`;
+          if (sendPctText) sendPctText.textContent = `${pct}%`;
+          setStatus(sendStatus, `Sending "${file.name}" (${fmtBytes(sentBytes)} / ${fmtBytes(totalBytes)})…`, 'ok');
+        }
+
+        sendChannel.send(JSON.stringify({ type: 'file-end', fileIndex: i }));
       }
 
-      sendChannel.send(JSON.stringify({ type: 'file-end', fileIndex: i }));
+      sendChannel.send(JSON.stringify({ type: 'all-done' }));
+      transferDoneSend = true;
+      if (sendProgressBar) sendProgressBar.style.width = '100%';
+      if (sendPctText) sendPctText.textContent = '100%';
+      setStatus(sendStatus, 'All files transferred successfully!', 'ok');
+      setRailActive(true, true);
+      showToast('All files sent successfully!', 'success');
+    } catch (err) {
+      console.error('Send error:', err);
+      setStatus(sendStatus, 'Transfer failed or was interrupted.', 'err');
     }
-
-    sendChannel.send(JSON.stringify({ type: 'all-done' }));
-    transferDoneSend = true;
-    setStatus(sendStatus, 'All files sent successfully!', 'ok');
-    setRailActive(true, true);
-    showToast('All files transferred successfully!', 'success');
   }
 
   // ============================================================
@@ -854,37 +939,109 @@
   // ============================================================
   let recvSocket = null;
   let recvPC = null;
+  let recvIceQueue = [];
   let incoming = null;
 
-  codeInput.addEventListener('input', () => {
-    codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
-  });
+  if (codeInput) {
+    codeInput.addEventListener('input', () => {
+      codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+    });
 
-  joinBtn.addEventListener('click', () => {
-    const code = codeInput.value.trim();
-    if (code.length !== 5) {
-      setStatus(recvStatus, 'Please enter the full 5-character call sign.', 'err');
-      return;
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        joinBtn.click();
+      }
+    });
+  }
+
+  if (pasteCodeBtn) {
+    pasteCodeBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          const clean = text.trim().toUpperCase().replace(/.*JOIN=/, '').replace(/[^A-Z0-9]/g, '').slice(0, 5);
+          if (clean.length === 5) {
+            codeInput.value = clean;
+            showToast(`Pasted call sign ${clean}`);
+          } else {
+            showToast('No valid 5-character code found in clipboard', 'error');
+          }
+        }
+      } catch {
+        showToast('Clipboard access unavailable. Please paste manually.', 'error');
+      }
+    });
+  }
+
+  function resetRecvState() {
+    if (recvSocket) {
+      try { recvSocket.send(JSON.stringify({ type: 'cancel' })); } catch { /* ignore */ }
+      recvSocket.close();
+      recvSocket = null;
     }
-    joinBtn.disabled = true;
-    setStatus(recvStatus, 'Connecting to signaling room…');
-    recvSocket = new WebSocket(wsUrl());
+    if (recvPC) {
+      recvPC.close();
+      recvPC = null;
+    }
+    recvIceQueue = [];
+    incoming = null;
 
-    recvSocket.addEventListener('open', () => {
-      recvSocket.send(JSON.stringify({ type: 'join', code }));
+    if (joinBtn) joinBtn.disabled = false;
+    if (joinBtnText) joinBtnText.textContent = 'Connect';
+    if (recvActionRow) recvActionRow.hidden = true;
+    if (recvProgress) recvProgress.hidden = true;
+    if (recvProgressBar) recvProgressBar.style.width = '0%';
+    if (recvPctText) recvPctText.hidden = true;
+    setStatus(recvStatus, '');
+    setRailActive(false, false);
+  }
+
+  if (cancelRecvBtn) {
+    cancelRecvBtn.addEventListener('click', () => {
+      resetRecvState();
+      showToast('Connection cancelled');
     });
+  }
 
-    recvSocket.addEventListener('message', (evt) => handleRecvSignal(JSON.parse(evt.data)));
+  if (joinBtn) {
+    joinBtn.addEventListener('click', () => {
+      const code = (codeInput.value || '').trim();
+      if (code.length !== 5) {
+        setStatus(recvStatus, 'Please enter the full 5-character call sign.', 'err');
+        return;
+      }
 
-    recvSocket.addEventListener('close', () => {
-      joinBtn.disabled = false;
+      joinBtn.disabled = true;
+      if (joinBtnText) joinBtnText.textContent = 'Connecting…';
+      if (recvActionRow) recvActionRow.hidden = false;
+      setStatus(recvStatus, `Connecting to call sign ${code}…`);
+
+      recvSocket = new WebSocket(wsUrl());
+
+      recvSocket.addEventListener('open', () => {
+        recvSocket.send(JSON.stringify({ type: 'join', code }));
+      });
+
+      recvSocket.addEventListener('message', (evt) => {
+        try {
+          handleRecvSignal(JSON.parse(evt.data));
+        } catch (err) {
+          console.error('Recv signal parse error:', err);
+        }
+      });
+
+      recvSocket.addEventListener('close', () => {
+        joinBtn.disabled = false;
+        if (joinBtnText) joinBtnText.textContent = 'Connect';
+      });
     });
-  });
+  }
 
   async function handleRecvSignal(msg) {
     switch (msg.type) {
       case 'joined':
-        setStatus(recvStatus, 'Joined call sign! Waiting for sender to start stream…');
+        setStatus(recvStatus, 'Joined room! Waiting for sender to start WebRTC…');
         setRailActive(true, true);
         setupRecvPeerConnection();
         break;
@@ -897,20 +1054,24 @@
         setStatus(recvStatus, 'The sender disconnected.', 'err');
         setRailActive(false, false);
         joinBtn.disabled = false;
+        if (joinBtnText) joinBtnText.textContent = 'Connect';
         break;
 
       case 'error':
         setStatus(recvStatus, msg.message, 'err');
         joinBtn.disabled = false;
+        if (joinBtnText) joinBtnText.textContent = 'Connect';
+        if (recvActionRow) recvActionRow.hidden = true;
         break;
     }
   }
 
   function setupRecvPeerConnection() {
     recvPC = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    recvIceQueue = [];
 
     recvPC.addEventListener('icecandidate', (e) => {
-      if (e.candidate) {
+      if (e.candidate && recvSocket && recvSocket.readyState === WebSocket.OPEN) {
         recvSocket.send(JSON.stringify({ type: 'signal', data: { kind: 'ice', payload: e.candidate } }));
       }
     });
@@ -927,20 +1088,31 @@
       channel.binaryType = 'arraybuffer';
       channel.addEventListener('message', (evt) => handleIncomingData(evt.data));
       channel.addEventListener('open', () => {
-        setStatus(recvStatus, 'Direct channel opened! Receiving files…', 'ok');
-        recvProgress.hidden = false;
+        setStatus(recvStatus, 'Direct P2P channel established! Receiving…', 'ok');
+        if (recvProgress) recvProgress.hidden = false;
+        if (recvPctText) recvPctText.hidden = false;
       });
     });
   }
 
   async function onRecvRemoteSignal(data) {
+    if (!recvPC) setupRecvPeerConnection();
+
     if (data.kind === 'offer') {
-      await recvPC.setRemoteDescription(data.payload);
+      await recvPC.setRemoteDescription(new RTCSessionDescription(data.payload));
+      while (recvIceQueue.length > 0) {
+        const cand = recvIceQueue.shift();
+        try { await recvPC.addIceCandidate(new RTCIceCandidate(cand)); } catch { /* ignore */ }
+      }
       const answer = await recvPC.createAnswer();
       await recvPC.setLocalDescription(answer);
       recvSocket.send(JSON.stringify({ type: 'signal', data: { kind: 'answer', payload: answer } }));
-    } else if (data.kind === 'ice') {
-      try { await recvPC.addIceCandidate(data.payload); } catch { /* ignore */ }
+    } else if (data.kind === 'ice' && data.payload) {
+      if (!recvPC.remoteDescription) {
+        recvIceQueue.push(data.payload);
+      } else {
+        try { await recvPC.addIceCandidate(new RTCIceCandidate(data.payload)); } catch { /* ignore */ }
+      }
     }
   }
 
@@ -949,23 +1121,25 @@
       const msg = JSON.parse(data);
       if (msg.type === 'meta') {
         incoming = { name: msg.name, size: msg.size, mime: msg.mime, chunks: [], received: 0 };
-        setStatus(recvStatus, `Receiving "${msg.name}"…`, 'ok');
+        setStatus(recvStatus, `Receiving "${msg.name}" (${fmtBytes(msg.size)})…`, 'ok');
       } else if (msg.type === 'file-end') {
         finalizeIncomingFile();
       } else if (msg.type === 'all-done') {
         setStatus(recvStatus, 'All incoming files received successfully!', 'ok');
-        recvProgressBar.style.width = '100%';
+        if (recvProgressBar) recvProgressBar.style.width = '100%';
+        if (recvPctText) recvPctText.textContent = '100%';
         showToast('All files downloaded successfully!', 'success');
       }
       return;
     }
 
-    // Binary chunk
     if (!incoming) return;
     incoming.chunks.push(data);
     incoming.received += data.byteLength;
-    const pct = incoming.size ? (incoming.received / incoming.size) * 100 : 0;
-    recvProgressBar.style.width = `${Math.min(100, pct)}%`;
+    const pct = incoming.size ? Math.min(100, Math.round((incoming.received / incoming.size) * 100)) : 0;
+    if (recvProgressBar) recvProgressBar.style.width = `${pct}%`;
+    if (recvPctText) recvPctText.textContent = `${pct}%`;
+    setStatus(recvStatus, `Receiving "${incoming.name}" (${pct}%)…`, 'ok');
   }
 
   function finalizeIncomingFile() {
@@ -973,7 +1147,6 @@
     const blob = new Blob(incoming.chunks, { type: incoming.mime });
     const url = URL.createObjectURL(blob);
 
-    // Remove empty notice if present
     const emptyNotice = recvFileList.querySelector('.empty-list-notice');
     if (emptyNotice) emptyNotice.remove();
 
@@ -990,12 +1163,12 @@
       </div>
       <div class="file-meta">
         <span class="file-size">${fmtBytes(incoming.size)}</span>
-        <a href="${url}" download="${escapeHtml(incoming.name)}" class="btn-icon-labeled" title="Save file again">Save</a>
+        <a href="${url}" download="${escapeHtml(incoming.name)}" class="btn-icon-labeled" title="Save file to disk">Save</a>
       </div>
     `;
     recvFileList.appendChild(li);
 
-    // Trigger auto-download
+    // Auto trigger download
     const a = document.createElement('a');
     a.href = url;
     a.download = incoming.name;
@@ -1013,7 +1186,9 @@
       const code = hash.replace('#join=', '').toUpperCase().slice(0, 5);
       if (codeInput) codeInput.value = code;
       switchTab('transfer');
+      setTransferMode('recv');
       showToast(`Call sign ${code} loaded! Click Connect.`, 'success');
+      setTimeout(() => codeInput.focus(), 300);
     } else if (hash === '#community') {
       switchTab('community');
     }
