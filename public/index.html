@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Direct Link — P2P File Transfer & Community Wall</title>
+  <title>Aadan-Pradan — Direct browser-to-browser file sharing</title>
+  <meta name="description" content="Send files directly between devices — fast, private, and without uploading your files to cloud storage.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,7 +12,7 @@
 </head>
 <body>
 
-  <!-- Ambient background glow elements -->
+  <!-- Subtle ambient glow background -->
   <div class="ambient-glow glow-1" aria-hidden="true"></div>
   <div class="ambient-glow glow-2" aria-hidden="true"></div>
 
@@ -22,29 +23,29 @@
 
     <!-- Global Header -->
     <header class="app-header">
-      <div class="brand-wrapper">
-        <div class="brand-logo" id="logoClickable">
-          <div class="logo-core">◈</div>
+      <div class="brand-wrapper" id="logoClickable" role="button" tabindex="0" title="Go to home">
+        <div class="brand-logo">
+          <span class="logo-text">AP</span>
           <div class="logo-ring"></div>
         </div>
         <div class="brand-info">
           <div class="brand-title-row">
-            <h1 class="brand-title">Direct Link</h1>
-            <span class="brand-badge">P2P + Community</span>
+            <h1 class="brand-title">Aadan-Pradan</h1>
+            <span class="brand-badge">P2P Direct</span>
           </div>
-          <p class="brand-subtitle">Zero-cloud direct browser transfers & public community clipboard</p>
+          <p class="brand-subtitle">Direct browser-to-browser file sharing</p>
         </div>
       </div>
 
       <div class="header-status">
-        <div class="live-pill" id="livePill" title="Real-time network connection">
+        <div class="live-pill" id="livePill" title="Signaling network connection">
           <span class="live-dot"></span>
           <span id="onlineCountText">Connecting…</span>
         </div>
       </div>
     </header>
 
-    <!-- Navigation Tabs -->
+    <!-- Main Navigation Tabs -->
     <nav class="nav-tabs" role="tablist" aria-label="Main Navigation">
       <button type="button" class="tab-btn active" id="tabTransferBtn" role="tab" aria-selected="true" aria-controls="transferTabPane">
         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -68,17 +69,103 @@
     <!-- TAB 1: P2P TRANSFER VIEW -->
     <section id="transferTabPane" class="tab-pane active" role="tabpanel" aria-labelledby="tabTransferBtn">
       
-      <!-- Transfer View Mode Switcher (Desktop & Mobile) -->
-      <div class="transfer-mode-switcher">
-        <button type="button" class="mode-btn active" id="modeBothBtn">
-          <span>All Panels</span>
+      <!-- HERO SECTION / HOMEPAGE SCREEN -->
+      <section class="hero-section" id="heroSection">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            <span>Direct P2P File Sharing · Zero Cloud Storage</span>
+          </div>
+          <h2 class="hero-title">Direct browser-to-browser file sharing</h2>
+          <p class="hero-desc">
+            Send files directly between devices — fast, private, and without uploading your files to cloud storage.
+          </p>
+          <p class="hero-subdesc">
+            No complicated setup. Choose your files, share your connection code, and transfer directly between browsers.
+          </p>
+
+          <!-- Primary Hero Actions (Send / Receive) -->
+          <div class="hero-actions-grid" role="group" aria-label="Primary Actions">
+            <button type="button" class="hero-card hero-send-card" id="heroSendActionBtn">
+              <div class="hero-card-icon-wrap send-accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <div class="hero-card-body">
+                <span class="hero-card-title">Send Files</span>
+                <span class="hero-card-text">Select or drop files to generate a direct connection code</span>
+              </div>
+              <div class="hero-card-action">
+                <span class="btn-text">Start Sending</span>
+                <span class="btn-arrow">→</span>
+              </div>
+            </button>
+
+            <button type="button" class="hero-card hero-recv-card" id="heroRecvActionBtn">
+              <div class="hero-card-icon-wrap recv-accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+              <div class="hero-card-body">
+                <span class="hero-card-title">Receive Files</span>
+                <span class="hero-card-text">Enter a Call Sign or scan a QR code to download files</span>
+              </div>
+              <div class="hero-card-action">
+                <span class="btn-text">Start Receiving</span>
+                <span class="btn-arrow">→</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Feature badges strip -->
+          <div class="hero-features-strip">
+            <div class="feature-item">
+              <span class="feature-icon">⚡</span>
+              <span>Unlimited File Sizes</span>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🔒</span>
+              <span>Encrypted WebRTC</span>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🚫</span>
+              <span>No Cloud Uploads</span>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">📱</span>
+              <span>Instant Mobile Pairing</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TRANSFER WORKSPACE CONTROLS & BREADCRUMBS -->
+      <div class="transfer-toolbar" id="transferToolbar">
+        <button type="button" class="btn-toolbar-back" id="backToHeroBtn" title="Back to overview options">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>Back to Home</span>
         </button>
-        <button type="button" class="mode-btn" id="modeSendBtn">
-          <span>📤 Send Mode</span>
-        </button>
-        <button type="button" class="mode-btn" id="modeRecvBtn">
-          <span>📥 Receive Mode</span>
-        </button>
+
+        <div class="transfer-mode-switcher">
+          <button type="button" class="mode-btn active" id="modeBothBtn">
+            <span>All Panels</span>
+          </button>
+          <button type="button" class="mode-btn" id="modeSendBtn">
+            <span>📤 Send Files</span>
+          </button>
+          <button type="button" class="mode-btn" id="modeRecvBtn">
+            <span>📥 Receive Files</span>
+          </button>
+        </div>
       </div>
 
       <!-- Interactive Signal Rail Visualization -->
@@ -99,7 +186,9 @@
 
       <div class="transfer-grid" id="transferGrid">
 
-        <!-- SEND PANEL -->
+        <!-- ============================================== -->
+        <!-- SENDER PANEL -->
+        <!-- ============================================== -->
         <div class="card panel-card send-card" id="sendCard">
           <div class="card-header">
             <div class="step-indicator">
@@ -111,165 +200,334 @@
             </div>
           </div>
 
-          <!-- Drop Area (Drop & Browse ONLY - No nested file list) -->
-          <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Drop files or click to browse">
-            <input type="file" id="fileInput" multiple hidden>
-            <div class="drop-prompt">
-              <div class="drop-icon-wrap">
-                <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-              </div>
-              <p class="drop-primary">Choose files or drop here</p>
-              <p class="drop-secondary">Select any files from this device</p>
-            </div>
-          </div>
-
-          <!-- Selected Files List (Cleanly separated from drop zone) -->
-          <div class="selected-files-card" id="selectedFilesCard" hidden>
-            <div class="selected-header">
-              <span class="selected-title" id="selectedCountText">0 files staged</span>
-              <button type="button" id="clearFilesBtn" class="link-action-subtle">Clear all</button>
-            </div>
-            <ul class="file-list" id="fileList"></ul>
-          </div>
-
-          <!-- Send Action Button -->
-          <div class="send-action-row">
-            <button type="button" id="createBtn" class="btn btn-primary" disabled>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-              <span>Generate Call Sign</span>
-            </button>
-          </div>
-
-          <!-- Call Sign Code Card (revealed when generated) -->
-          <div class="callsign-box" id="callsignPlate" hidden>
-            <div class="callsign-header">
-              <span class="callsign-label">YOUR CALL SIGN</span>
-              <span class="callsign-tag" id="sendStateTag">Waiting for peer…</span>
-            </div>
-            
-            <div class="callsign-display-box">
-              <div class="code-display" id="plateCode">-----</div>
-            </div>
-
-            <!-- Action buttons below code -->
-            <div class="callsign-action-bar">
-              <button type="button" id="copyBtn" class="btn-icon-labeled" title="Copy Call Sign">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span id="copyBtnText">Copy Code</span>
-              </button>
-
-              <button type="button" id="copyLinkBtn" class="btn-icon-labeled" title="Copy direct link for peer">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                </svg>
-                <span id="copyLinkBtnText">Copy Link</span>
-              </button>
-
-              <button type="button" id="qrToggleBtn" class="btn-icon-labeled" title="Show QR Code for mobile">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="14" width="7" height="7"></rect>
-                  <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-                <span>QR Code</span>
-              </button>
-
-              <button type="button" id="cancelSendBtn" class="btn-icon-labeled btn-cancel" title="Cancel this transfer and start over">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-                <span>Reset</span>
-              </button>
-            </div>
-
-            <!-- Mobile QR Canvas Box -->
-            <div class="qr-canvas-container" id="qrContainer" hidden>
-              <p class="qr-instruction">Scan with phone camera to connect directly:</p>
-              <div class="qr-box">
-                <img id="qrImage" width="180" height="180" alt="Direct Link QR Code">
+          <!-- SENDER STAGE: SELECTION & CODE GENERATION -->
+          <div class="sender-stage-active" id="senderStagingSection">
+            <!-- Drop Area -->
+            <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Drop files or click to browse">
+              <input type="file" id="fileInput" multiple hidden>
+              <div class="drop-prompt">
+                <div class="drop-icon-wrap">
+                  <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                </div>
+                <p class="drop-primary">Choose files or drag & drop here</p>
+                <p class="drop-secondary">Select any files from your device to transfer</p>
               </div>
             </div>
-          </div>
 
-          <!-- Status & Progress -->
-          <div class="status-wrap" id="sendStatusWrap">
-            <div class="status-header-row">
+            <!-- Selected Files List -->
+            <div class="selected-files-card" id="selectedFilesCard" hidden>
+              <div class="selected-header">
+                <span class="selected-title" id="selectedCountText">0 files staged</span>
+                <button type="button" id="clearFilesBtn" class="link-action-subtle">Clear all</button>
+              </div>
+              <ul class="file-list" id="fileList"></ul>
+            </div>
+
+            <!-- Send Action Button -->
+            <div class="send-action-row">
+              <button type="button" id="createBtn" class="btn btn-primary" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                <span>Generate Call Sign</span>
+              </button>
+            </div>
+
+            <!-- Call Sign Code Card -->
+            <div class="callsign-box" id="callsignPlate" hidden>
+              <div class="callsign-header">
+                <div>
+                  <span class="callsign-label">YOUR CONNECTION CODE</span>
+                  <p class="callsign-instructions">Share this code with the receiver to establish a direct connection.</p>
+                </div>
+                <span class="callsign-tag" id="sendStateTag">Waiting for peer…</span>
+              </div>
+              
+              <div class="callsign-display-box">
+                <div class="code-display" id="plateCode" aria-label="Connection code">-----</div>
+              </div>
+
+              <!-- Action buttons below code -->
+              <div class="callsign-action-bar">
+                <button type="button" id="copyBtn" class="btn-icon-labeled" title="Copy Call Sign">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span id="copyBtnText">Copy Code</span>
+                </button>
+
+                <button type="button" id="copyLinkBtn" class="btn-icon-labeled" title="Copy direct link for peer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                  </svg>
+                  <span id="copyLinkBtnText">Copy Link</span>
+                </button>
+
+                <button type="button" id="qrToggleBtn" class="btn-icon-labeled" title="Show QR Code for mobile">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                  <span>Show QR</span>
+                </button>
+
+                <button type="button" id="cancelSendBtn" class="btn-icon-labeled btn-cancel" title="Reset this session">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              <!-- Mobile QR View -->
+              <div class="qr-canvas-container" id="qrContainer" hidden>
+                <p class="qr-instruction">Scan with phone camera or QR app to connect directly:</p>
+                <div class="qr-box">
+                  <img id="qrImage" width="200" height="200" alt="Aadan-Pradan Connection QR Code">
+                </div>
+              </div>
+            </div>
+
+            <!-- Legacy/General status text -->
+            <div class="status-wrap" id="sendStatusWrap">
               <p class="status-msg" id="sendStatus" role="status"></p>
-              <span class="status-pct" id="sendPctText" hidden>0%</span>
-            </div>
-            <div class="progress-track" id="sendProgress" hidden>
-              <div class="progress-fill send-fill" id="sendProgressBar"></div>
             </div>
           </div>
+
+          <!-- SENDER STAGE: ACTIVE TRANSFER MONITOR -->
+          <div class="transfer-monitor-card" id="sendTransferMonitor" hidden>
+            <div class="monitor-header">
+              <div class="monitor-title-group">
+                <span class="live-pulse-dot"></span>
+                <h3 class="monitor-heading" id="sendMonitorHeading">Transferring Files</h3>
+              </div>
+              <button type="button" class="btn-cancel-transfer" id="sendAbortBtn">Cancel</button>
+            </div>
+
+            <!-- Overall Progress Summary -->
+            <div class="overall-progress-box">
+              <div class="overall-meta-row">
+                <span class="overall-files-count" id="sendOverallFilesCount">0 files</span>
+                <span class="overall-pct-badge" id="sendOverallPctText">0%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill send-fill" id="sendOverallProgressBar" style="width: 0%;"></div>
+              </div>
+              <div class="overall-stats-grid">
+                <div class="stat-cell">
+                  <span class="stat-label">Transferred</span>
+                  <span class="stat-val" id="sendTransferredBytesText">0 B / 0 B</span>
+                </div>
+                <div class="stat-cell">
+                  <span class="stat-label">Speed</span>
+                  <span class="stat-val" id="sendSpeedText">0.0 MB/s</span>
+                </div>
+                <div class="stat-cell">
+                  <span class="stat-label">Remaining</span>
+                  <span class="stat-val" id="sendRemainingTimeText">Calculating…</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Multi-file Breakdown List -->
+            <div class="multi-file-section">
+              <span class="section-micro-label">Files in Transfer</span>
+              <ul class="transfer-file-items-list" id="sendFilesBreakdownList"></ul>
+            </div>
+          </div>
+
+          <!-- SENDER STAGE: COMPLETION SCREEN -->
+          <div class="completion-card" id="sendCompletionCard" hidden>
+            <div class="completion-badge-wrap">
+              <div class="completion-badge send-complete-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            </div>
+            <h3 class="completion-title">Transfer Complete</h3>
+            <p class="completion-subtitle">✓ All files transferred successfully to the receiver.</p>
+            
+            <div class="completion-summary-box" id="sendCompletionSummary">
+              <!-- Summary populated via app.js -->
+            </div>
+
+            <div class="completion-actions-row">
+              <button type="button" class="btn btn-primary" id="sendMoreFilesBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Transfer More Files</span>
+              </button>
+              <button type="button" class="btn btn-subtle" id="sendCompletionHomeBtn">Back to Home</button>
+            </div>
+          </div>
+
         </div>
 
-        <!-- RECEIVE PANEL -->
+
+        <!-- ============================================== -->
+        <!-- RECEIVER PANEL -->
+        <!-- ============================================== -->
         <div class="card panel-card recv-card" id="recvCard">
           <div class="card-header">
             <div class="step-indicator">
               <span class="step-num step-teal">02</span>
               <div>
                 <h2>Receive Files</h2>
-                <p class="card-desc">Enter the call sign to start downloading</p>
+                <p class="card-desc">Enter the Call Sign to connect and receive files</p>
               </div>
             </div>
           </div>
 
-          <div class="code-form">
-            <label class="input-label" for="codeInput">Enter Call Sign</label>
-            <div class="code-input-group">
-              <div class="input-code-wrapper">
-                <input type="text" id="codeInput" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCDE">
-                <button type="button" id="pasteCodeBtn" class="paste-code-btn" title="Paste from clipboard">Paste</button>
+          <!-- RECEIVER STAGE: FORM -->
+          <div class="receiver-stage-active" id="receiverFormSection">
+            <div class="code-form">
+              <label class="input-label" for="codeInput">Enter Connection Code</label>
+              <div class="code-input-group">
+                <div class="input-code-wrapper">
+                  <input type="text" id="codeInput" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter Call Sign" aria-label="Enter 5-character Call Sign">
+                  <button type="button" id="pasteCodeBtn" class="paste-code-btn" title="Paste Call Sign from clipboard">Paste</button>
+                </div>
+                <button type="button" id="joinBtn" class="btn btn-teal">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                  <span id="joinBtnText">Connect</span>
+                </button>
               </div>
-              <button type="button" id="joinBtn" class="btn btn-teal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-                <span id="joinBtnText">Connect</span>
-              </button>
+
+              <!-- QR Scan Button Alternative -->
+              <div class="qr-scan-prompt-row">
+                <span class="or-divider-text">or</span>
+                <button type="button" class="btn-scan-qr" id="scanQrBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <span>Scan QR Code</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <!-- Receiver Action / Cancel Row -->
-          <div class="recv-action-row" id="recvActionRow" hidden>
-            <button type="button" id="cancelRecvBtn" class="btn-subtle-cancel">
-              <span>✕ Cancel Connection</span>
-            </button>
-          </div>
+            <!-- REUSABLE CONNECTION STATUS COMPONENT -->
+            <div class="connection-status-card" id="connectionStatusCard" hidden>
+              <div class="status-indicator-row">
+                <span class="status-indicator-dot" id="statusDot"></span>
+                <div class="status-indicator-text">
+                  <h4 class="status-heading" id="statusHeading">Connecting…</h4>
+                  <p class="status-explanation" id="statusExplanation">Initiating peer-to-peer WebRTC connection.</p>
+                </div>
+              </div>
+              <div class="status-actions-row" id="statusActionsRow" hidden>
+                <button type="button" class="btn-status-action btn-retry" id="statusRetryBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span>Retry</span>
+                </button>
+                <button type="button" class="btn-status-action btn-cancel-action" id="statusCancelBtn">Cancel</button>
+              </div>
+            </div>
 
-          <!-- Receiver Status & Progress -->
-          <div class="status-wrap" id="recvStatusWrap">
-            <div class="status-header-row">
+            <!-- Legacy status msg fallback -->
+            <div class="status-wrap" id="recvStatusWrap" hidden>
               <p class="status-msg" id="recvStatus" role="status"></p>
-              <span class="status-pct" id="recvPctText" hidden>0%</span>
-            </div>
-            <div class="progress-track" id="recvProgress" hidden>
-              <div class="progress-fill recv-fill" id="recvProgressBar"></div>
             </div>
           </div>
 
-          <!-- Received Files Output List -->
-          <div class="received-box" id="recvBox">
-            <h3 class="received-title">Received Files</h3>
-            <ul class="file-list" id="recvFileList">
-              <li class="empty-list-notice">Files sent from peer will download automatically here</li>
-            </ul>
+          <!-- RECEIVER STAGE: ACTIVE TRANSFER MONITOR -->
+          <div class="transfer-monitor-card" id="recvTransferMonitor" hidden>
+            <div class="monitor-header">
+              <div class="monitor-title-group">
+                <span class="live-pulse-dot dot-teal"></span>
+                <h3 class="monitor-heading" id="recvMonitorHeading">Receiving Files</h3>
+              </div>
+              <button type="button" class="btn-cancel-transfer" id="recvAbortBtn">Cancel</button>
+            </div>
+
+            <!-- Overall Progress Summary -->
+            <div class="overall-progress-box">
+              <div class="overall-meta-row">
+                <span class="overall-files-count" id="recvOverallFilesCount">0 files</span>
+                <span class="overall-pct-badge" id="recvOverallPctText">0%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill recv-fill" id="recvOverallProgressBar" style="width: 0%;"></div>
+              </div>
+              <div class="overall-stats-grid">
+                <div class="stat-cell">
+                  <span class="stat-label">Received</span>
+                  <span class="stat-val" id="recvTransferredBytesText">0 B / 0 B</span>
+                </div>
+                <div class="stat-cell">
+                  <span class="stat-label">Speed</span>
+                  <span class="stat-val" id="recvSpeedText">0.0 MB/s</span>
+                </div>
+                <div class="stat-cell">
+                  <span class="stat-label">Remaining</span>
+                  <span class="stat-val" id="recvRemainingTimeText">Calculating…</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Multi-file Breakdown List -->
+            <div class="multi-file-section">
+              <span class="section-micro-label">Files Incoming</span>
+              <ul class="transfer-file-items-list" id="recvFilesBreakdownList"></ul>
+            </div>
+          </div>
+
+          <!-- RECEIVER STAGE: COMPLETION SCREEN -->
+          <div class="completion-card" id="recvCompletionCard" hidden>
+            <div class="completion-badge-wrap">
+              <div class="completion-badge recv-complete-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            </div>
+            <h3 class="completion-title">Transfer Complete</h3>
+            <p class="completion-subtitle">✓ All files transferred successfully.</p>
+            
+            <div class="received-files-results">
+              <div class="results-header">
+                <span class="results-title" id="recvResultsTitle">Received Files</span>
+                <button type="button" class="btn-download-all" id="downloadAllFilesBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>Save All</span>
+                </button>
+              </div>
+              <ul class="file-list" id="recvFileList"></ul>
+            </div>
+
+            <div class="completion-actions-row">
+              <button type="button" class="btn btn-teal" id="recvMoreFilesBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Receive More Files</span>
+              </button>
+              <button type="button" class="btn btn-subtle" id="recvCompletionHomeBtn">Back to Home</button>
+            </div>
           </div>
 
         </div>
@@ -280,7 +538,7 @@
       <footer class="tech-notes">
         <div class="note-pill">
           <span class="note-icon">🔒</span>
-          <span>End-to-End Direct Connection: Files stream browser-to-browser via WebRTC without touching the server.</span>
+          <span>End-to-End Direct Connection: Files stream browser-to-browser via WebRTC without uploading to cloud storage.</span>
         </div>
       </footer>
 
@@ -312,12 +570,12 @@
               <label for="authorInput">Your Name / Handle</label>
               <div class="input-with-icon">
                 <span class="field-icon">@</span>
-                <input type="text" id="authorInput" placeholder="e.g. John Doe or dev_ninja" maxlength="40" required>
+                <input type="text" id="authorInput" placeholder="e.g. John Doe or dev_ninja" maxlength="30" required>
               </div>
             </div>
 
             <div class="form-field tag-field">
-              <label for="tagSelect">Category</label>
+              <label for="tagSelector">Category</label>
               <div class="tag-selector" id="tagSelector">
                 <button type="button" class="tag-pill active" data-tag="Note">📝 Note</button>
                 <button type="button" class="tag-pill" data-tag="Code">💻 Code</button>
@@ -330,15 +588,15 @@
 
           <div class="form-field">
             <div class="textarea-header">
-              <label for="snippetTextInput">Text / Code Snippet</label>
-              <span class="char-count" id="charCount">0 / 20,000</span>
+              <label for="snippetTextInput">Text, Code or Link</label>
+              <span class="char-count" id="charCount">0 / 5,000</span>
             </div>
-            <textarea id="snippetTextInput" rows="4" placeholder="Type or paste anything here... (e.g. commands, shared notes, code snippets, cheat sheets, announcements)" required></textarea>
+            <textarea id="snippetTextInput" rows="4" maxlength="5000" placeholder="Type or paste anything here... (e.g. commands, shared notes, code snippets, web links, or announcements)" required></textarea>
           </div>
 
           <div class="composer-actions">
             <div class="composer-hint">
-              <span>⚡ Live Sync: Everyone online sees your post immediately</span>
+              <span>⚡ Live Sync: Broadcasts in real-time to all connected users</span>
             </div>
             <button type="submit" id="submitSnippetBtn" class="btn btn-accent">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -395,6 +653,45 @@
 
     </section>
 
+  </div>
+
+  <!-- QR CODE SCANNER MODAL -->
+  <div class="modal-overlay" id="qrScannerModal" hidden aria-modal="true" role="dialog" aria-labelledby="qrModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <svg class="modal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          <h3 id="qrModalTitle">Scan Connection QR Code</h3>
+        </div>
+        <button type="button" class="btn-close-modal" id="closeQrModalBtn" aria-label="Close modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="scanner-viewport-wrapper">
+          <video id="qrVideo" playsinline autoplay muted></video>
+          <canvas id="qrCanvas" hidden></canvas>
+          <div class="scanner-frame">
+            <div class="scanner-laser"></div>
+          </div>
+          <p class="scanner-prompt-text" id="scannerStatusText">Point your camera at the QR code on the sender screen…</p>
+        </div>
+
+        <div class="scanner-fallback-options">
+          <label for="qrFileInput" class="btn-upload-qr-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span>Scan QR from Screenshot / Image</span>
+            <input type="file" id="qrFileInput" accept="image/*" hidden>
+          </label>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

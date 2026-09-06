@@ -1,5 +1,25 @@
 [
   {
+    "id": "post_1788667780076_oz85s",
+    "author": "LoopTester",
+    "text": "Fast message",
+    "tag": "Note",
+    "deleteKey": "1b23dbdd134b6183a10732df",
+    "reportCount": 1,
+    "hidden": false,
+    "createdAt": 1788667780076
+  },
+  {
+    "id": "post_1788667773423_ykywn",
+    "author": "Flooder",
+    "text": "Fast message",
+    "tag": "Note",
+    "deleteKey": "f563382b9b6208584b875648",
+    "reportCount": 0,
+    "hidden": false,
+    "createdAt": 1788667773423
+  },
+  {
     "id": "post_1788591148313_7k9yb",
     "author": "Akshraj",
     "text": "Hello",
@@ -18,7 +38,8 @@
     "author": "Alex (Creator)",
     "text": "Welcome to the P2P Community Board! Share code snippets, notes, terminal commands, or links here. Anyone can view and copy with 1 click.",
     "tag": "Note",
-    "createdAt": 1788587917068
+    "createdAt": 1788587917068,
+    "reportCount": 1
   },
   {
     "id": "seed-2",

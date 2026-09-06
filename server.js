@@ -1,11 +1,12 @@
-// Signaling & Community Server for P2P Share ("Direct Link")
+// Signaling & Community Server for Aadan-Pradan
 // 1. WebRTC Signaling: Relays small handshake messages between two browsers.
-//    Never handles or inspects file content.
-// 2. Community Board: Stores and broadcasts shared notes/snippets in real time.
+//    Never handles or inspects file content. Direct browser-to-browser P2P.
+// 2. Community Wall: Stores, moderates, and broadcasts shared notes/snippets in real time.
 
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const QRCode = require('qrcode');
 
@@ -16,10 +17,54 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I ambiguity
 // In-memory rooms: code -> { host: ws|null, receiver: ws|null, createdAt }
 const rooms = new Map();
 
+// --- Rate Limiting for Community Wall ---
+const rateLimits = new Map(); // ip -> { lastPostTime, countThisHour, hourResetTime }
+const MIN_POST_INTERVAL_MS = 4000; // 4 seconds between posts
+const MAX_POSTS_PER_HOUR = 30;
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let record = rateLimits.get(ip);
+  if (!record) {
+    record = { lastPostTime: 0, countThisHour: 0, hourResetTime: now + 3600 * 1000 };
+    rateLimits.set(ip, record);
+  }
+
+  if (now > record.hourResetTime) {
+    record.countThisHour = 0;
+    record.hourResetTime = now + 3600 * 1000;
+  }
+
+  if (now - record.lastPostTime < MIN_POST_INTERVAL_MS) {
+    const waitSec = Math.ceil((MIN_POST_INTERVAL_MS - (now - record.lastPostTime)) / 1000);
+    return { allowed: false, message: `Please wait ${waitSec}s before posting again.` };
+  }
+
+  if (record.countThisHour >= MAX_POSTS_PER_HOUR) {
+    return { allowed: false, message: 'Hourly posting limit reached. Please try again later.' };
+  }
+
+  record.lastPostTime = now;
+  record.countThisHour += 1;
+  return { allowed: true };
+}
+
+// Clean up old rate limit entries every 15 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimits.entries()) {
+    if (now - record.lastPostTime > 3600 * 1000) {
+      rateLimits.delete(ip);
+    }
+  }
+}, 15 * 60 * 1000);
+
 // --- Community Snippets Store ---
 const DATA_DIR = path.join(__dirname, 'data');
 const COMMUNITY_FILE = path.join(DATA_DIR, 'community.json');
 const MAX_COMMUNITY_POSTS = 200;
+const MAX_POST_LENGTH = 5000;
+const MAX_AUTHOR_LENGTH = 30;
 
 let communityPosts = [];
 
@@ -36,24 +81,30 @@ function loadCommunityPosts() {
       communityPosts = [
         {
           id: 'seed-1',
-          author: 'Alex (Creator)',
-          text: 'Welcome to the P2P Community Board! Share code snippets, notes, terminal commands, or links here. Anyone can view and copy with 1 click.',
+          author: 'Aadan-Pradan',
+          text: 'Welcome to Aadan-Pradan! Direct browser-to-browser file sharing and community clipboard. Zero cloud storage — your transfers stay strictly between connected devices.',
           tag: 'Note',
-          createdAt: Date.now() - 1000 * 60 * 45
+          createdAt: Date.now() - 1000 * 60 * 45,
+          reportCount: 0,
+          hidden: false
         },
         {
           id: 'seed-2',
           author: 'DevTip',
-          text: 'git config --global alias.undo "reset --soft HEAD~1"\n// Quick command to undo your last local commit while keeping changes staged!',
+          text: 'git config --global alias.undo "reset --soft HEAD~1"\n// Quick alias to undo your last local commit while keeping staged changes intact.',
           tag: 'Code',
-          createdAt: Date.now() - 1000 * 60 * 20
+          createdAt: Date.now() - 1000 * 60 * 20,
+          reportCount: 0,
+          hidden: false
         },
         {
           id: 'seed-3',
-          author: 'Community Hub',
-          text: 'Need to transfer heavy files directly peer-to-peer? Use the Transfer tab above. No file size limits and zero server storage!',
-          tag: 'Message',
-          createdAt: Date.now() - 1000 * 60 * 5
+          author: 'WebRTC Hub',
+          text: 'https://webrtc.org\nOfficial documentation and architectural overview for WebRTC real-time browser communication.',
+          tag: 'Link',
+          createdAt: Date.now() - 1000 * 60 * 5,
+          reportCount: 0,
+          hidden: false
         }
       ];
       saveCommunityPosts();
@@ -77,19 +128,67 @@ function saveCommunityPosts() {
 
 loadCommunityPosts();
 
+// Safe public projection (strips private deleteKey and hidden posts)
+function toPublicPost(post) {
+  return {
+    id: post.id,
+    author: post.author,
+    text: post.text,
+    tag: post.tag,
+    createdAt: post.createdAt
+  };
+}
+
+function getPublicPosts() {
+  return communityPosts
+    .filter(p => !p.hidden)
+    .slice(0, MAX_COMMUNITY_POSTS)
+    .map(toPublicPost);
+}
+
+function validateAndSanitizeUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl.trim());
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.href;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function addCommunityPost({ author, text, tag }) {
-  const cleanAuthor = String(author || 'Anonymous').trim().slice(0, 40) || 'Anonymous';
-  const cleanText = String(text || '').trim();
+  const cleanAuthor = String(author || 'Anonymous').trim().slice(0, MAX_AUTHOR_LENGTH) || 'Anonymous';
+  let cleanText = String(text || '').trim();
   const validTags = ['Note', 'Code', 'Link', 'Message'];
   const cleanTag = validTags.includes(tag) ? tag : 'Note';
 
-  if (!cleanText) return null;
+  if (!cleanText) return { error: 'Text content cannot be empty.' };
+  if (cleanText.length > MAX_POST_LENGTH) {
+    return { error: `Content exceeds maximum length of ${MAX_POST_LENGTH} characters.` };
+  }
 
+  // If Link tag, ensure valid HTTP/HTTPS url
+  if (cleanTag === 'Link') {
+    const firstLine = cleanText.split('\n')[0].trim();
+    if (!validateAndSanitizeUrl(firstLine)) {
+      const candidate = 'https://' + firstLine;
+      if (!validateAndSanitizeUrl(candidate)) {
+        return { error: 'Please enter a valid web URL starting with http:// or https://' };
+      }
+    }
+  }
+
+  const deleteKey = crypto.randomBytes(12).toString('hex');
   const newPost = {
     id: 'post_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
     author: cleanAuthor,
-    text: cleanText.slice(0, 20000),
+    text: cleanText,
     tag: cleanTag,
+    deleteKey: deleteKey,
+    reportCount: 0,
+    hidden: false,
     createdAt: Date.now()
   };
 
@@ -98,7 +197,37 @@ function addCommunityPost({ author, text, tag }) {
     communityPosts = communityPosts.slice(0, MAX_COMMUNITY_POSTS);
   }
   saveCommunityPosts();
-  return newPost;
+
+  return { post: newPost, deleteKey };
+}
+
+function deleteCommunityPost(id, deleteKey) {
+  if (!id || !deleteKey) return false;
+  const index = communityPosts.findIndex(p => p.id === id);
+  if (index === -1) return false;
+
+  const post = communityPosts[index];
+  if (post.deleteKey && post.deleteKey === deleteKey) {
+    communityPosts.splice(index, 1);
+    saveCommunityPosts();
+    return true;
+  }
+  return false;
+}
+
+function reportCommunityPost(id) {
+  if (!id) return { success: false, error: 'Missing post ID' };
+  const post = communityPosts.find(p => p.id === id);
+  if (!post) return { success: false, error: 'Post not found' };
+
+  post.reportCount = (post.reportCount || 0) + 1;
+  let hidden = false;
+  if (post.reportCount >= 3) {
+    post.hidden = true;
+    hidden = true;
+  }
+  saveCommunityPosts();
+  return { success: true, hidden };
 }
 
 function generateCode() {
@@ -128,7 +257,7 @@ function broadcastStats(wss) {
   broadcast(wss, {
     type: 'stats',
     onlineUsers: wss.clients.size,
-    postCount: communityPosts.length
+    postCount: getPublicPosts().length
   });
 }
 
@@ -161,16 +290,19 @@ const MIME = {
 };
 
 const server = http.createServer((req, res) => {
-  // Enable CORS
+  // Enable CORS & Security Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     return res.end();
   }
 
+  const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
 
@@ -178,10 +310,16 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/community') {
     if (req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ success: true, posts: communityPosts }));
+      return res.end(JSON.stringify({ success: true, posts: getPublicPosts() }));
     }
 
     if (req.method === 'POST') {
+      const rateCheck = checkRateLimit(clientIp);
+      if (!rateCheck.allowed) {
+        res.writeHead(429, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: rateCheck.message }));
+      }
+
       let body = '';
       req.on('data', chunk => {
         body += chunk;
@@ -190,17 +328,24 @@ const server = http.createServer((req, res) => {
       req.on('end', () => {
         try {
           const parsed = JSON.parse(body);
-          const newPost = addCommunityPost(parsed);
-          if (!newPost) {
+          const result = addCommunityPost(parsed);
+          if (result.error) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify({ success: false, error: 'Text content cannot be empty' }));
+            return res.end(JSON.stringify({ success: false, error: result.error }));
           }
+
+          const publicPost = toPublicPost(result.post);
+
           // Broadcast to connected WebSocket clients
-          broadcast(wss, { type: 'community-new', post: newPost });
+          broadcast(wss, { type: 'community-new', post: publicPost });
           broadcastStats(wss);
 
           res.writeHead(201, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, post: newPost }));
+          return res.end(JSON.stringify({
+            success: true,
+            post: publicPost,
+            deleteKey: result.deleteKey
+          }));
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ success: false, error: 'Invalid JSON body' }));
@@ -210,11 +355,61 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  if (pathname === '/api/community/delete' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { id, deleteKey } = JSON.parse(body);
+        const ok = deleteCommunityPost(id, deleteKey);
+        if (ok) {
+          broadcast(wss, { type: 'community-deleted', id });
+          broadcastStats(wss);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true }));
+        } else {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: 'Unauthorized or post not found.' }));
+        }
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
+      }
+    });
+    return;
+  }
+
+  if (pathname === '/api/community/report' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const { id } = JSON.parse(body);
+        const result = reportCommunityPost(id);
+        if (result.success) {
+          if (result.hidden) {
+            broadcast(wss, { type: 'community-deleted', id });
+            broadcastStats(wss);
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: true, hidden: result.hidden }));
+        } else {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ success: false, error: result.error }));
+        }
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ success: false, error: 'Invalid request' }));
+      }
+    });
+    return;
+  }
+
   if (pathname === '/api/stats') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
       onlineUsers: wss.clients.size,
-      postCount: communityPosts.length
+      postCount: getPublicPosts().length
     }));
   }
 
@@ -224,7 +419,16 @@ const server = http.createServer((req, res) => {
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       return res.end('Missing text query parameter');
     }
-    QRCode.toString(text, { type: 'svg', margin: 2, width: 220 })
+    // High contrast clean QR SVG with light background padding
+    QRCode.toString(text, {
+      type: 'svg',
+      margin: 1,
+      width: 240,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    })
       .then(svg => {
         res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' });
         res.end(svg);
@@ -258,15 +462,16 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   ws.role = null;
   ws.code = null;
+  ws.clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '127.0.0.1';
 
   // Send initial stats & community post list on connection
   send(ws, {
     type: 'stats',
     onlineUsers: wss.clients.size,
-    postCount: communityPosts.length
+    postCount: getPublicPosts().length
   });
 
   // Broadcast updated count to all
@@ -279,17 +484,35 @@ wss.on('connection', (ws) => {
     switch (msg.type) {
       // Community: Fetch list
       case 'community-get': {
-        send(ws, { type: 'community-list', posts: communityPosts });
+        send(ws, { type: 'community-list', posts: getPublicPosts() });
         break;
       }
 
       // Community: Create new post
       case 'community-post': {
-        const newPost = addCommunityPost(msg);
-        if (newPost) {
-          broadcast(wss, { type: 'community-new', post: newPost });
-          broadcastStats(wss);
+        const rateCheck = checkRateLimit(ws.clientIp);
+        if (!rateCheck.allowed) {
+          send(ws, { type: 'error', message: rateCheck.message });
+          return;
         }
+
+        const result = addCommunityPost(msg);
+        if (result.error) {
+          send(ws, { type: 'error', message: result.error });
+          return;
+        }
+
+        const publicPost = toPublicPost(result.post);
+        // Reply to creator with deleteKey
+        send(ws, {
+          type: 'community-post-success',
+          post: publicPost,
+          deleteKey: result.deleteKey
+        });
+
+        // Broadcast to all
+        broadcast(wss, { type: 'community-new', post: publicPost });
+        broadcastStats(wss);
         break;
       }
 
@@ -311,11 +534,17 @@ wss.on('connection', (ws) => {
         const code = (msg.code || '').toUpperCase().trim();
         const room = rooms.get(code);
         if (!room || !room.host) {
-          send(ws, { type: 'error', message: 'Invalid or expired call sign.' });
+          send(ws, {
+            type: 'error',
+            message: 'Invalid or expired Call Sign. Please check the code and try again.'
+          });
           return;
         }
         if (room.receiver) {
-          send(ws, { type: 'error', message: 'This call sign is already in use.' });
+          send(ws, {
+            type: 'error',
+            message: 'This Call Sign is already in use by another receiver.'
+          });
           return;
         }
         room.receiver = ws;
@@ -363,11 +592,10 @@ wss.on('connection', (ws) => {
         cleanupRoom(ws.code);
       }
     }
-    // Update online count
     broadcastStats(wss);
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`Signaling server listening on http://localhost:${PORT}`);
+  console.log(`Aadan-Pradan Signaling & Community Server listening on http://localhost:${PORT}`);
 });

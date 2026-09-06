@@ -1,50 +1,89 @@
-# Direct Link — P2P File Transfer & Community Wall
+# Aadan-Pradan — Direct Browser-to-Browser File Sharing & Community Wall
 
-Send files straight from one browser to another using a short 5-character call sign with zero cloud storage, plus share text, snippets, commands, and notes on the live **Community Wall** where anyone can read and copy with 1 click.
+> **Send files directly between devices — fast, private, and without uploading your files to cloud storage.**
 
-## Features
+Aadan-Pradan is a production-grade browser-to-browser P2P file-sharing application and community clipboard. Transfers stream directly peer-to-peer using WebRTC `RTCDataChannel`, with zero intermediate cloud storage.
 
-- **⚡ Direct WebRTC P2P Transfer**: End-to-end browser-to-browser encrypted file transfers. The server only relays the tiny initial handshake.
-- **🌐 Community Wall & Public Clipboard**: Share code snippets, notes, commands, or links with your name/handle.
-- **📋 1-Click Copy**: Any community snippet can be copied instantly with automatic visual confirmation and toast feedback.
-- **📱 Universal Responsive UI**: Cyberpunk & Aurora glassmorphic theme designed to look attractive and fit seamlessly across mobile, tablet, and desktop screens.
-- **📷 Mobile QR Code**: Generate an instant QR code on the sender screen for mobile devices to join and receive files without typing.
-- **🟢 Live Network Stats**: Real-time connected peer counter and live community updates powered by WebSockets.
+---
 
-## How it works
+## Key Features
 
-### P2P File Transfer
-1. **Sender** picks file(s) and clicks **Generate call sign**. The server generates a 5-character room code (e.g. `DTS6G`).
-2. **Receiver** enters that code or scans the QR code and clicks **Connect**.
-3. Direct WebRTC `RTCDataChannel` connection is negotiated and files stream directly peer-to-peer in 16KB chunks.
-4. Auto-downloads on receiver's device once received.
+- **⚡ Direct WebRTC P2P Transfer**: Direct browser-to-browser encrypted transfers. Zero cloud storage — files stream directly between peers in 16KB data chunks.
+- **🎯 Streamlined Homepage & Hero**: Instant selection between **Send Files** and **Receive Files** with clear guidance.
+- **🏷️ 5-Character Connection Code (Call Sign)**: Unique, unambiguous alphanumeric codes (e.g. `AB7KQ`) with 1-click **Copy Code**, **Copy Link**, and **Show QR**.
+- **📷 Instant QR Code & Camera Scanner**: Senders generate high-contrast QR codes; receivers can join by scanning with their camera or uploading a QR screenshot.
+- **📊 Real-Time Transfer Metrics (Non-Faked)**:
+  - Instantaneous transfer speed (`MB/s` or `KB/s`)
+  - Accurate estimated remaining time (ETA)
+  - Amount transferred vs total file size (`176 MB / 245 MB`)
+  - Multi-file progress tracking (`✓ Completed`, `↻ 72%`, `○ Waiting`) plus overall batch percentage
+- **🎉 Distinct Completion Screen**: Dedicated celebration view upon transfer completion with individual file downloads, **Save All Files** batch action, **Transfer More Files**, and **Back to Home**.
+- **🔄 Reusable Connection Status**: Human-readable status indicators for all 8 states (`Initializing`, `Waiting for peer`, `Connecting`, `Connected`, `Transferring`, `Completed`, `Disconnected`, `Failed`) with context-sensitive Retry and Cancel actions.
+- **💬 Community Wall & Public Clipboard**: Share and browse notes, code snippets, web links, and messages.
+  - Category filtering (`All`, `Note`, `Code`, `Link`, `Message`) and instant keyword search
+  - 1-click **Copy Code** and secure **Open Link**
+  - **Author Post Deletion**: Authors retain a secure client-side delete key in `localStorage` to delete their posts
+  - **Community Reporting**: User-driven moderation to flag and auto-hide inappropriate content
+  - **Security & Rate Limiting**: Strict input bounds (5,000 char max), XSS-safe DOM rendering, safe URL whitelist, and server-side IP rate limiting
+- **📱 Fully Responsive SaaS Aesthetic**: Modern, accessible dark theme optimized across mobile, tablet, laptop, and desktop viewports.
 
-### Community Wall
+---
+
+## How It Works
+
+### 1. Sender Flow
+1. Click **Send Files** or drop files into the staging zone.
+2. Click **Generate Call Sign** to request a 5-character connection code from the signaling server.
+3. Share the code, direct link (`/#join=CODE`), or QR code with the receiver.
+4. Once the receiver connects, a direct WebRTC `RTCDataChannel` is negotiated.
+5. The sender first sends a `manifest` packet detailing all files, followed by 16KB binary chunks with real-time speed and ETA calculation.
+6. The celebration screen confirms: *"✓ All files transferred successfully."*
+
+### 2. Receiver Flow
+1. Click **Receive Files** or open a shared direct link.
+2. Enter the 5-character Call Sign or scan the sender's QR code with the built-in scanner.
+3. Click **Connect**. The status component indicates 🟡 *Connecting…* then 🟢 *Connected*.
+4. Files stream directly into memory, auto-download upon completion, and are presented in the **Transfer Complete** view with individual and batch download options.
+
+### 3. Community Wall
 1. Switch to the **Community Wall** tab.
-2. Enter your name/handle (saved automatically for your next visits), choose a category (`Note`, `Code`, `Link`, `Message`), and type your snippet.
-3. Click **Publish Snippet** — it broadcasts in real-time to everyone online!
-4. Filter by category, search by author or keyword, and click **Copy Text** to copy anything to your clipboard.
+2. Enter your author handle, choose a category (`Note`, `Code`, `Link`, `Message`), and type your snippet.
+3. Click **Publish Snippet** — it broadcasts in real-time to all connected users via WebSockets.
 
-## Run it locally
+---
+
+## Local Development
 
 ```bash
+# Install dependencies
 npm install
+
+# Start the signaling & community server
 node server.js
 ```
 
-Then open `http://localhost:3000` in your browser.
+Then navigate to `http://localhost:3000` in your web browser.
 
-## File structure
+---
+
+## Project Structure
 
 ```
 p2p-share/
-├── server.js          # Static server + WebRTC signaling + Community REST/WS
-├── package.json
+├── server.js          # HTTP static server + WebSocket signaling + REST API (with rate-limiting)
+├── package.json       # Project dependencies (ws, qrcode)
 ├── data/
 │   └── community.json # Persisted community posts store
 └── public/
-    ├── index.html     # Responsive P2P transfer & Community wall
-    ├── style.css      # Modern dark aurora / cyberpunk glassmorphic styles
-    └── app.js         # Real-time WebSocket, WebRTC, clipboard & community logic
+    ├── index.html     # Semantic, accessible UI (Hero, Sender, Receiver, Community Wall, QR Modal)
+    ├── style.css      # Developer SaaS design system (Slate/obsidian palette, responsive)
+    └── app.js         # WebRTC engine, speed/ETA tracker, connection manager, QR scanner, community logic
 ```
 
+---
+
+## Security & Architecture Notes
+
+- **Zero Cloud Storage**: File data never touches the signaling server. All data transfers occur strictly over encrypted WebRTC `RTCDataChannel` peer-to-peer connections.
+- **XSS Prevention**: User-generated community content is escaped and safely mounted to the DOM using text nodes and strict protocol checks (`http:` and `https:` only).
+- **IP Rate Limiting**: The community posting endpoint enforces rate limits per IP to protect against spam flooding.
